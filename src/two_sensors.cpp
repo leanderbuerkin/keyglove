@@ -2,30 +2,40 @@
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 
-// Create two TwoWire instances for the two I2C buses
-TwoWire I2Cone = TwoWire(0);
-TwoWire I2Ctwo = TwoWire(1);
+TwoWire first_I2C_bus = TwoWire(0);
+TwoWire second_I2C_bus = TwoWire(1);
 
-// Create two MPU6050 instances
+int second_mpu_SDA_pin = 18;
+int second_mpu_SCL_pin = 19;
+int first_mpu_SDA_pin = 21;
+int first_mpu_SCL_pin = 22;
+
+int I2C_clock_frequency = 400000;
+
 Adafruit_MPU6050 mpu1;
 Adafruit_MPU6050 mpu2;
 
-void setup()
-{
+void initialize_mpu(TwoWire I2C_bus) {
+    if (!mpu1.begin(0x68, &I2C_bus))
+    {
+        Serial.println("Failed to find MPU6050 chip");
+        while (1) delay(10);
+    }
+    Serial.println("MPU6050 Found!");
+}
+
+void setup() {
     Serial.begin(921600);
-    while (!Serial)
-        delay(10); // Wait for Serial Monitor to open
+    while (!Serial) delay(10);
 
-    // Initialize the first I2C bus (default pins: SDA=21, SCL=22)
-    I2Cone.begin(21, 22, 400000);
+    first_I2C_bus.begin(first_mpu_SDA_pin, first_mpu_SCL_pin, I2C_clock_frequency);
 
-    // Initialize the second I2C bus (example pins: SDA=18, SCL=19)
-    I2Ctwo.begin(18, 19, 400000);
+    second_I2C_bus.begin(second_mpu_SDA_pin, second_mpu_SCL_pin, I2C_clock_frequency);
 
     Serial.println("Initializing MPU6050 sensors...");
 
     // Initialize the first MPU6050
-    if (!mpu1.begin(0x68, &I2Cone))
+    if (!mpu1.begin(0x68, &first_I2C_bus))
     {
         Serial.println("Failed to find first MPU6050 chip");
         while (1)
@@ -36,7 +46,7 @@ void setup()
     Serial.println("First MPU6050 Found!");
 
     // Initialize the second MPU6050
-    if (!mpu2.begin(0x68, &I2Ctwo))
+    if (!mpu2.begin(0x68, &second_I2C_bus))
     {
         Serial.println("Failed to find second MPU6050 chip");
         while (1)
@@ -46,7 +56,6 @@ void setup()
     }
     Serial.println("Second MPU6050 Found!");
 
-    // Set up the sensors
     mpu1.setAccelerometerRange(MPU6050_RANGE_8_G);
     mpu1.setGyroRange(MPU6050_RANGE_500_DEG);
     mpu1.setFilterBandwidth(MPU6050_BAND_21_HZ);
@@ -56,17 +65,6 @@ void setup()
     mpu2.setFilterBandwidth(MPU6050_BAND_21_HZ);
 
     delay(100);
-}
-
-void printSensorData(sensors_event_t a, sensors_event_t g, sensors_event_t temp)
-{
-    Serial.print(">acceleration_x:");
-    Serial.println(a.acceleration.x);
-    Serial.print(">acceleration_y:");
-    Serial.println(a.acceleration.y);
-    Serial.print(">acceleration_z:");
-    Serial.println(a.acceleration.z);
-
 }
 
 void loop()
@@ -79,14 +77,13 @@ void loop()
     sensors_event_t a2, g2, temp2;
     mpu2.getEvent(&a2, &g2, &temp2);
 
-    // Print the data from both sensors
     Serial.print(">acceleration_x1:");
     Serial.println(a1.acceleration.x);
     Serial.print(">acceleration_y1:");
     Serial.println(a1.acceleration.y);
     Serial.print(">acceleration_z1:");
     Serial.println(a1.acceleration.z);
-    // Print the data from both sensors
+
     Serial.print(">acceleration_x2:");
     Serial.println(a2.acceleration.x);
     Serial.print(">acceleration_y2:");
