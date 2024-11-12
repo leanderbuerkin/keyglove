@@ -1,59 +1,50 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_MPU6050.h>
+
+#define MPU_ADDRESS 0x68
+#define POWER_MANAGMENT_REGISTER_ADDRESS 0x6B
+#define WAKE_UP_MESSAGE_TO_POWER_MANAGMENT 0
+#define FIRST_DATA_REGISTER_ADDRESS 0x3B
+#define NUMBER_OF_NEEDED_REGISTERS 1
+#define I2C_CLOCK_FREQUENCY 400000
+#define FIRST_MPU_SDA_PIN 18
+#define FIRST_MPU_SCL_PIN 19
+#define SECOND_MPU_SDA_PIN 21
+#define SECOND_MPU_SCL_PIN 22
 
 TwoWire first_I2C_bus = TwoWire(0);
 TwoWire second_I2C_bus = TwoWire(1);
 
-int second_mpu_SDA_pin = 18;
-int second_mpu_SCL_pin = 19;
-int first_mpu_SDA_pin = 21;
-int first_mpu_SCL_pin = 22;
-
-int I2C_clock_frequency = 400000;
-
-Adafruit_MPU6050 first_accelerometer;
-Adafruit_MPU6050 second_accelerometer;
-
-void initialize_mpu(TwoWire &I2C_bus, Adafruit_MPU6050 &accelerometer)
+void setup_mpu(TwoWire &I2C_bus)
 {
-    Serial.println("Initializing MPU6050 sensor");
-    if (!accelerometer.begin(0x68, &I2C_bus))
-    {
-        Serial.println("MPU6050 chip not found");
-        while (1);
-    }
-    Serial.println("MPU6050 found");
-
-    accelerometer.setAccelerometerRange(MPU6050_RANGE_8_G);
-    accelerometer.setGyroRange(MPU6050_RANGE_500_DEG);
-    accelerometer.setFilterBandwidth(MPU6050_BAND_21_HZ);
+    I2C_bus.beginTransmission(MPU_ADDRESS);
+    I2C_bus.write(POWER_MANAGMENT_REGISTER_ADDRESS);
+    I2C_bus.write(WAKE_UP_MESSAGE_TO_POWER_MANAGMENT);
+    I2C_bus.endTransmission(true);
 }
 
-void setup() {
+void setup()
+{
     Serial.begin(921600);
-    while (!Serial) delay(10);
+    first_I2C_bus.begin(FIRST_MPU_SDA_PIN, FIRST_MPU_SCL_PIN, I2C_CLOCK_FREQUENCY);
+    second_I2C_bus.begin(SECOND_MPU_SDA_PIN, SECOND_MPU_SCL_PIN, I2C_CLOCK_FREQUENCY);
+    setup_mpu(first_I2C_bus);
+    setup_mpu(second_I2C_bus);
+}
 
-    first_I2C_bus.begin(first_mpu_SDA_pin, first_mpu_SCL_pin, I2C_clock_frequency);
-    second_I2C_bus.begin(second_mpu_SDA_pin, second_mpu_SCL_pin, I2C_clock_frequency);
-
-    initialize_mpu(first_I2C_bus, first_accelerometer);
-    initialize_mpu(second_I2C_bus, second_accelerometer);
-
-    delay(100);
+int8_t read_acceleration_x_high_byte(TwoWire &I2C_bus)
+{
+    I2C_bus.beginTransmission(MPU_ADDRESS);
+    I2C_bus.write(FIRST_DATA_REGISTER_ADDRESS);
+    I2C_bus.endTransmission(false);
+    I2C_bus.requestFrom(MPU_ADDRESS, NUMBER_OF_NEEDED_REGISTERS);
+    return I2C_bus.read();
 }
 
 void loop()
 {
-    sensors_event_t a1, g1, temp1;
-    first_accelerometer.getEvent(&a1, &g1, &temp1);
-
-    sensors_event_t a2, g2, temp2;
-    second_accelerometer.getEvent(&a2, &g2, &temp2);
-
-    Serial.print(">acceleration_x1:");
-    Serial.println(a1.acceleration.x);
-
-    Serial.print(">acceleration_x2:");
-    Serial.println(a2.acceleration.x);
+    Serial.print(">1. acceleration X:");
+    Serial.println(read_acceleration_x_high_byte(first_I2C_bus));
+    Serial.print(">2. acceleration X:");
+    Serial.println(read_acceleration_x_high_byte(second_I2C_bus));
 }
