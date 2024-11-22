@@ -11,6 +11,7 @@
 #define FIRST_MPU_SCL_PIN 19
 #define SECOND_MPU_SDA_PIN 21
 #define SECOND_MPU_SCL_PIN 22
+#define SERIAL_TRANSMISSION_START_MESSAGE "go"
 
 TwoWire first_I2C_bus = TwoWire(0);
 TwoWire second_I2C_bus = TwoWire(1);
@@ -32,19 +33,19 @@ void setup()
     setup_mpu(second_I2C_bus);
 }
 
-int8_t read_acceleration_x_high_byte(TwoWire &I2C_bus)
+void request_acceleration_x_high_byte(TwoWire &I2C_bus)
 {
     I2C_bus.beginTransmission(MPU_ADDRESS);
     I2C_bus.write(FIRST_DATA_REGISTER_ADDRESS);
     I2C_bus.endTransmission(false);
     I2C_bus.requestFrom(MPU_ADDRESS, NUMBER_OF_NEEDED_REGISTERS);
-    return I2C_bus.read();
 }
 
 void loop()
 {
-    Serial.print(">1. acceleration X:");
-    Serial.println(read_acceleration_x_high_byte(first_I2C_bus));
-    Serial.print(">2. acceleration X:");
-    Serial.println(read_acceleration_x_high_byte(second_I2C_bus));
+    Serial.println(SERIAL_TRANSMISSION_START_MESSAGE);
+    request_acceleration_x_high_byte(first_I2C_bus);
+    Serial.println(first_I2C_bus.read());
+    request_acceleration_x_high_byte(second_I2C_bus);
+    Serial.println(second_I2C_bus.read());
 }
