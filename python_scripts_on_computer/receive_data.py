@@ -14,6 +14,7 @@ serial_buffer = bytearray()
 
 ### CONSTANTS AND VARIABLES TO INTERPRET DATA
 
+MINIMUM_BIN_VALUE = 50
 THRESHOLDS = np.array([-45, -15, 15, 45])
 letter_bins = np.zeros((5, 5), dtype=int)
 
@@ -25,26 +26,12 @@ letters = np.array([['a', 'b', 'c', 'd', 'e'],
 
 ### CONSTANTS AND VARIABLES FOR PLOTS
 
-#DOT_SIZE = 50
-#plt.ion()
-#fig, ax = plt.subplots()
-#scatter = ax.scatter([], [], s=DOT_SIZE)
-#BIGGEST_POSSIBLE_VALUE = 130
-#ax.set_xlim(-BIGGEST_POSSIBLE_VALUE, BIGGEST_POSSIBLE_VALUE)
-#ax.set_ylim(-BIGGEST_POSSIBLE_VALUE, BIGGEST_POSSIBLE_VALUE)
-
 fig, ax = plt.subplots()
-cmap = plt.get_cmap('viridis')
-norm = plt.Normalize(vmin=0, vmax=32)
-
-
-# Annotate each cell with corresponding character
-for (i, j), val in np.ndenumerate(letters):
-    ax.text(j, i, val, ha='center', va='center', color='white')
-
-ax.set_title('Character Matrix with Color Updates')
-ax.set_xticks(np.arange(len(letters[0])))
-ax.set_yticks(np.arange(len(letters)))
+ax.set_xlim(-0.5,4.5)
+ax.set_ylim(-0.5,4.5)
+#color_map = plt.get_cmap('viridis')
+#color_norm = plt.Normalize(vmin=0, vmax=MINIMUM_BIN_VALUE)
+#plot_letters(ax)
 
 ### SERIAL
 
@@ -63,13 +50,6 @@ def get_one_datapoint_from_buffer():
     except ValueError:
         return None, None
 
-### PLOT
-
-#def plot_datapoints(x_coordinate, y_coordinate):
-#    scatter.set_offsets([x_coordinate, y_coordinate])
-#    fig.canvas.draw()
-#    fig.canvas.flush_events()
-
 ### INTERPRET DATA
 
 def find_and_select_letter(data_sensor_1, data_sensor_2):
@@ -78,15 +58,25 @@ def find_and_select_letter(data_sensor_1, data_sensor_2):
     y_bin = np.digitize(data_sensor_2, THRESHOLDS)
     letter_bins[y_bin][x_bin] += 1
     maximum = np.max(letter_bins)
-    if maximum > 30 and 2*maximum > np.sum(letter_bins):
+    if maximum > MINIMUM_BIN_VALUE and 2*maximum > np.sum(letter_bins):
         argmax_tuple = np.argmax(letter_bins)
         letter_bins = np.zeros((5, 5), dtype=int)
-        return letters[np.unravel_index(argmax_tuple, letters.shape)]
+        return letters[np.unravel_index(argmax_tuple, letter_bins.shape)]
     return None
 
 ### EXECUTION
 
-def animate(frame):
+def plot_letters(ax):
+    for (i, j), val in np.ndenumerate(letters):
+        ax.text(j, i, val, ha='center', va='center', color='black',
+            bbox=dict(facecolor='white', edgecolor='none'))
+    argmax_tuple = np.unravel_index(np.argmax(letter_bins), letter_bins.shape)
+    ax.text(argmax_tuple[0], argmax_tuple[1],
+            letters[argmax_tuple],
+            ha='center', va='center', color='red',
+            bbox=dict(facecolor='white', edgecolor='none'))
+
+def main_function(frame):
     get_all_data_from_serial()
     while b'\n' in serial_buffer:
         data_sensor_1, data_sensor_2 = get_one_datapoint_from_buffer()
@@ -95,14 +85,11 @@ def animate(frame):
             if letter:
                 print(letter)
 
-    # ax.clear()
-    cax = ax.matshow(letter_bins, cmap=cmap, norm=norm)  # Display updated values
+    plot_letters(ax)
+
+    #ax.matshow(letter_bins, cmap=color_map, norm=color_norm)
     
-    
-ani = FuncAnimation(fig, animate, frames=100, interval=1000)  # Update every second
+
+ani = FuncAnimation(fig, main_function, frames=300, interval=100)
 
 plt.show()
-
-# print(str(time.time() - START_OF_EXECUTION) + " seconds")
-# print(successfull_data_transmissions) # 800 out of 1000
-# print("out of " + str(NUMBER_OF_DATA_REQUEST))
