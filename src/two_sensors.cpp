@@ -36,7 +36,7 @@ void setup(void)
 void get_data_from_sensor(TwoWire &I2C_bus)
 {
     I2C_bus.beginTransmission(MPU_ADDRESS);
-    I2C_bus.write(Z_ACCELERATION_REGISTER_ADDRESS);
+    I2C_bus.write(X_ACCELERATION_REGISTER_ADDRESS);
     I2C_bus.endTransmission(false);
     I2C_bus.requestFrom(MPU_ADDRESS, NUMBER_OF_NEEDED_REGISTERS);
 }

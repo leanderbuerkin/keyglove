@@ -1,78 +1,108 @@
 import serial
 import time
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
 import numpy as np
 
-number_of_data_requests = 1000
+# Sensor 1 has no metal ring
 
-serial_with_accelerometers = serial.Serial('/dev/ttyUSB0', 921600)
-time.sleep(2)    # to establish the connection via serial
+### CONSTANTS AND VARIABLES FOR SERIAL COMMUNICATION
 
-def get_line(serial, timeout=1):
-    start_time = time.time()
-    buffer = bytearray()
-    while True:
-        if serial.in_waiting > 0:
-            buffer += serial.read(serial.in_waiting)
-            if b'\n' in buffer:
-                line, buffer = buffer.split(b'\n', 1)
-                return line.decode('utf-8', errors='replace').strip()
-        if time.time() - start_time > timeout:
-            return None
+SERIAL_WITH_ACCELEROMETERS = serial.Serial('/dev/ttyUSB0', 921600)
+serial_buffer = bytearray()
 
-def get_accelerometer_data(serial):
-    success = 1
-    line_from_serial = get_line(serial)
+### CONSTANTS AND VARIABLES TO INTERPRET DATA
+
+THRESHOLDS = np.array([-45, -15, 15, 45])
+letter_bins = np.zeros((5, 5), dtype=int)
+
+letters = np.array([['a', 'b', 'c', 'd', 'e'],
+           ['f', 'g', 'h', 'i', 'j'],
+           ['k', 'l', 'm', 'n', 'o'],
+           ['p', 'q', 'r', 's', 't'],
+           ['u', 'v', 'w', 'x', 'y']])
+
+### CONSTANTS AND VARIABLES FOR PLOTS
+
+#DOT_SIZE = 50
+#plt.ion()
+#fig, ax = plt.subplots()
+#scatter = ax.scatter([], [], s=DOT_SIZE)
+#BIGGEST_POSSIBLE_VALUE = 130
+#ax.set_xlim(-BIGGEST_POSSIBLE_VALUE, BIGGEST_POSSIBLE_VALUE)
+#ax.set_ylim(-BIGGEST_POSSIBLE_VALUE, BIGGEST_POSSIBLE_VALUE)
+
+fig, ax = plt.subplots()
+cmap = plt.get_cmap('viridis')
+norm = plt.Normalize(vmin=0, vmax=32)
+
+
+# Annotate each cell with corresponding character
+for (i, j), val in np.ndenumerate(letters):
+    ax.text(j, i, val, ha='center', va='center', color='white')
+
+ax.set_title('Character Matrix with Color Updates')
+ax.set_xticks(np.arange(len(letters[0])))
+ax.set_yticks(np.arange(len(letters)))
+
+### SERIAL
+
+def get_all_data_from_serial():
+    global serial_buffer
+    while SERIAL_WITH_ACCELEROMETERS.in_waiting > 0:
+        serial_buffer += SERIAL_WITH_ACCELEROMETERS.read(SERIAL_WITH_ACCELEROMETERS.in_waiting)
+
+def get_one_datapoint_from_buffer():
+    global serial_buffer
+    line, serial_buffer = serial_buffer.split(b'\n', 1)
+    line_from_serial = line.decode('utf-8', errors='replace').strip()
     try:
         datapoint_sensor_1, datapoint_sensor_2 = line_from_serial.split(" ")
-        data_sensor_1.append(int(datapoint_sensor_1))
-        data_sensor_2.append(int(datapoint_sensor_2))
+        return int(datapoint_sensor_1), int(datapoint_sensor_2)
     except ValueError:
-        success = 0
-    return success
+        return None, None
 
-successfull_data_transmission = 0
+### PLOT
 
-start_of_execution = time.time()
+#def plot_datapoints(x_coordinate, y_coordinate):
+#    scatter.set_offsets([x_coordinate, y_coordinate])
+#    fig.canvas.draw()
+#    fig.canvas.flush_events()
 
-def moving_average(data, window_size):
-    return np.convolve(data, np.ones(window_size), 'valid') / window_size
+### INTERPRET DATA
 
-thresholds = [235, 240, 245, 250]
+def find_and_select_letter(data_sensor_1, data_sensor_2):
+    global letter_bins
+    x_bin = np.digitize(data_sensor_1, THRESHOLDS)
+    y_bin = np.digitize(data_sensor_2, THRESHOLDS)
+    letter_bins[y_bin][x_bin] += 1
+    maximum = np.max(letter_bins)
+    if maximum > 30 and 2*maximum > np.sum(letter_bins):
+        argmax_tuple = np.argmax(letter_bins)
+        letter_bins = np.zeros((5, 5), dtype=int)
+        return letters[np.unravel_index(argmax_tuple, letters.shape)]
+    return None
 
-def classify_signal(value):
-    for i, threshold in enumerate(thresholds):
-        if value < threshold:
-            return i
-    return 4  # If greater than all thresholds
+### EXECUTION
 
-dot_size = 50
+def animate(frame):
+    get_all_data_from_serial()
+    while b'\n' in serial_buffer:
+        data_sensor_1, data_sensor_2 = get_one_datapoint_from_buffer()
+        if data_sensor_1 != None and data_sensor_2 != None:
+            letter = find_and_select_letter(data_sensor_1, data_sensor_2)
+            if letter:
+                print(letter)
 
-data_sensor_1 = []
-data_sensor_2 = []
-plt.ion()
-fig, ax = plt.subplots()
-scatter = ax.scatter([], [], s=dot_size)
-ax.set_xlim(-130, 130)
-ax.set_ylim(-130, 130)
-
-window_size = 10  # Adjust based on your signal characteristics
-
-def avg(data_sensor):
-    smoothed_value = moving_average(data_sensor, window_size)[-1]
-    #### interval = classify_signal(smoothed_value)
-
-    data_sensor.pop(0)  # Remove oldest value
-    return smoothed_value
-
-for datapoint_index in range(number_of_data_requests):
-    successfull_data_transmission += get_accelerometer_data(serial_with_accelerometers)
+    # ax.clear()
+    cax = ax.matshow(letter_bins, cmap=cmap, norm=norm)  # Display updated values
     
-    if len(data_sensor_1) >= window_size:
-        scatter.set_offsets([(avg(data_sensor_1), avg(data_sensor_2))])
-        fig.canvas.draw()
-        fig.canvas.flush_events()
+    
+ani = FuncAnimation(fig, animate, frames=100, interval=1000)  # Update every second
 
-print(str(time.time() - start_of_execution) + " seconds")
-print(successfull_data_transmission) # 823
-print("out of " + str(number_of_data_requests))
+plt.show()
+
+# print(str(time.time() - START_OF_EXECUTION) + " seconds")
+# print(successfull_data_transmissions) # 800 out of 1000
+# print("out of " + str(NUMBER_OF_DATA_REQUEST))
