@@ -1,6 +1,8 @@
 import time
 import serial
 import numpy as np
+from pynput import keyboard
+import pyautogui
 
 # Sensor 1 has no metal ring
 
@@ -12,6 +14,7 @@ EXECUTION_TIME_IN_SECONDS = 20
 # -- CONSTANTS AND VARIABLES FOR SERIAL COMMUNICATION --
 
 SERIAL_WITH_ACCELEROMETERS = serial.Serial('/dev/ttyUSB0', 921600)
+time.sleep(2)
 serial_buffer = bytearray()
 
 # -- CONSTANTS AND VARIABLES TO INTERPRET DATA --
@@ -56,11 +59,22 @@ def estimate_character():
     global detected_characters
     most_detected_character = max(set(detected_characters),
                                   key=detected_characters.count)
-    print(str(len(detected_characters)) + " detected characters")
-    print(str((detected_characters.count(most_detected_character)*100)
-              // len(detected_characters)) + "% probability for chosen character.")
+    # print(str(len(detected_characters)) + " detected characters")
+    # print(str((detected_characters.count(most_detected_character)*100)
+    #           // len(detected_characters)) + "% probability for chosen character.")
     detected_characters = []
     return most_detected_character
+
+# -- KEYBOARD --
+
+estimated_character = 'a'
+
+def on_press(key):
+    if key == keyboard.Key.space:
+        pyautogui.write(estimated_character)
+
+listener = keyboard.Listener(on_press=on_press)
+listener.start()
 
 # -- EXECUTION --
 
@@ -75,4 +89,5 @@ while time.time() - START_TIME < EXECUTION_TIME_IN_SECONDS:
         if len(detected_characters) < 10:
             print("Too little characters detected for estimate.")
         else:
-            print(estimate_character())
+            estimated_character = estimate_character()
+            print(estimated_character)
