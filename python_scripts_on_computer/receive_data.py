@@ -1,29 +1,33 @@
 import time
 import serial
-import matplotlib.pyplot as plt
-
 import numpy as np
 
 # Sensor 1 has no metal ring
 
-### CONSTANTS AND VARIABLES FOR SERIAL COMMUNICATION
+# -- GENERAL CONSTANTS AND VARIABLES --
+
+START_TIME = time.time()
+EXECUTION_TIME_IN_SECONDS = 20
+
+# -- CONSTANTS AND VARIABLES FOR SERIAL COMMUNICATION --
 
 SERIAL_WITH_ACCELEROMETERS = serial.Serial('/dev/ttyUSB0', 921600)
 serial_buffer = bytearray()
 
-### CONSTANTS AND VARIABLES TO INTERPRET DATA
+# -- CONSTANTS AND VARIABLES TO INTERPRET DATA --
 
-MINIMUM_BIN_VALUE = 50
 THRESHOLDS = np.array([-45, -15, 15, 45])
-character_bins = np.zeros((5, 5), dtype=int)
+CHARACTERS = np.array([['a', 'b', 'c', 'd', 'e'],
+                       ['f', 'g', 'h', 'i', 'j'],
+                       ['k', 'l', 'm', 'n', 'o'],
+                       ['p', 'q', 'r', 's', 't'],
+                       ['u', 'v', 'w', 'x', 'y']])
+SECONDS_BETWEEN_ESTIMATES = 0.05
+print(str(SECONDS_BETWEEN_ESTIMATES) + " seconds between estimates.")
+TIME_SINCE_LAST_ESTIMATE = START_TIME
+detected_characters = []
 
-characters = np.array([['a', 'b', 'c', 'd', 'e'],
-                    ['f', 'g', 'h', 'i', 'j'],
-           ['k', 'l', 'm', 'n', 'o'],
-           ['p', 'q', 'r', 's', 't'],
-           ['u', 'v', 'w', 'x', 'y']])
-
-### SERIAL
+# -- SERIAL --
 
 def get_all_data_from_serial():
     global serial_buffer
@@ -35,39 +39,40 @@ def get_one_datapoint_from_buffer():
     line, serial_buffer = serial_buffer.split(b'\n', 1)
     line_from_serial = line.decode('utf-8', errors='replace').strip()
     try:
-        print(line_from_serial)
         datapoint_sensor_1, datapoint_sensor_2 = line_from_serial.split(" ")
         return int(datapoint_sensor_1), int(datapoint_sensor_2)
     except ValueError:
         return None, None
 
-### INTERPRET DATA
+# -- INTERPRET DATA --
 
 def assign_data_to_character(data_sensor_1, data_sensor_2):
-    global character_bins
-    x_bin = np.digitize(data_sensor_1, THRESHOLDS)
-    y_bin = np.digitize(data_sensor_2, THRESHOLDS)
-    character_bins[y_bin][x_bin] += 1
+    global detected_characters
+    bin_column = np.digitize(data_sensor_1, THRESHOLDS)
+    bin_row = np.digitize(data_sensor_2, THRESHOLDS)
+    detected_characters.append(CHARACTERS[bin_row][bin_column])
 
-def show_character():
-    print(characters[np.unravel_index(np.argmax(character_bins), character_bins.shape)])
+def estimate_character():
+    global detected_characters
+    most_detected_character = max(set(detected_characters),
+                                  key=detected_characters.count)
+    print(str(len(detected_characters)) + " detected characters")
+    print(str((detected_characters.count(most_detected_character)*100)
+              // len(detected_characters)) + "% probability for chosen character.")
+    detected_characters = []
+    return most_detected_character
 
+# -- EXECUTION --
 
-### EXECUTION
-
-successfull_transmissions = 0
-failed_transmissions = 0
-START_TIME = time.time()
-while time.time() - START_TIME < 10:
+while time.time() - START_TIME < EXECUTION_TIME_IN_SECONDS:
     get_all_data_from_serial()
     while b'\n' in serial_buffer:
         data_sensor_1, data_sensor_2 = get_one_datapoint_from_buffer()
         if data_sensor_1 is not None and data_sensor_2 is not None:
-            successfull_transmissions += 1
             assign_data_to_character(data_sensor_1, data_sensor_2)
-            show_character()
+    if time.time() - TIME_SINCE_LAST_ESTIMATE > SECONDS_BETWEEN_ESTIMATES:
+        TIME_SINCE_LAST_ESTIMATE = time.time()
+        if len(detected_characters) < 10:
+            print("Too little characters detected for estimate.")
         else:
-            failed_transmissions += 1
-
-print("Failed Transmissions: " + str(failed_transmissions))
-print("Successfull Transmissions: " + str(successfull_transmissions))
+            print(estimate_character())

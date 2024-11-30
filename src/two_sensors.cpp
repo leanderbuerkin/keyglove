@@ -57,33 +57,9 @@ void send_via_serial_to_python(void)
     Serial.println(static_cast<int8_t>(I2C_bus_2.read()));
 }
 
-
-double measureExecutionsPerSecond(double durationSeconds)
-{
-    using namespace std::chrono;
-
-    auto start = high_resolution_clock::now();
-    auto end = start + duration_cast<high_resolution_clock::duration>(duration<double>(durationSeconds));
-
-    int executionCount = 0;
-    while (high_resolution_clock::now() < end)
-    {
-        {
-            get_data_from_sensor(I2C_bus_1);
-            get_data_from_sensor(I2C_bus_2);
-            executionCount++;
-        }
-
-        auto actualDuration = duration_cast<duration<double>>(high_resolution_clock::now() - start).count();
-        Serial.println(executionCount / actualDuration);
-    }
-}
-
 void loop(void)
 {
-    measureExecutionsPerSecond(10);
-
-    //get_data_from_sensor(I2C_bus_1);
-    //get_data_from_sensor(I2C_bus_2);
-    // send_via_serial_to_python();
+    get_data_from_sensor(I2C_bus_1);
+    get_data_from_sensor(I2C_bus_2);
+    send_via_serial_to_python();
 }
