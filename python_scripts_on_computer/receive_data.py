@@ -9,7 +9,7 @@ import pyautogui
 # -- GENERAL CONSTANTS AND VARIABLES --
 
 START_TIME = time.time()
-EXECUTION_TIME_IN_SECONDS = 20
+EXECUTION_TIME_IN_SECONDS = 60
 
 # -- CONSTANTS AND VARIABLES FOR SERIAL COMMUNICATION --
 
@@ -19,7 +19,8 @@ serial_buffer = bytearray()
 
 # -- CONSTANTS AND VARIABLES TO INTERPRET DATA --
 
-THRESHOLDS = np.array([-45, -15, 15, 45])
+THRESHOLDS = np.array([-21, -7, 7, 21])
+# THRESHOLDS = np.array([-45, -15, 15, 45])
 CHARACTERS = np.array([['a', 'b', 'c', 'd', 'e'],
                        ['f', 'g', 'h', 'i', 'j'],
                        ['k', 'l', 'm', 'n', 'o'],
