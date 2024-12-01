@@ -60,9 +60,9 @@ def estimate_character():
     global detected_characters
     most_detected_character = max(set(detected_characters),
                                   key=detected_characters.count)
-    # print(str(len(detected_characters)) + " detected characters")
-    # print(str((detected_characters.count(most_detected_character)*100)
-    #           // len(detected_characters)) + "% probability for chosen character.")
+    print(str(len(detected_characters)) + " detected characters")
+    print(str((detected_characters.count(most_detected_character)*100)
+              // len(detected_characters)) + "% probability for chosen character.")
     detected_characters = []
     return most_detected_character
 
@@ -80,15 +80,15 @@ listener.start()
 # -- EXECUTION --
 
 while time.time() - START_TIME < EXECUTION_TIME_IN_SECONDS:
-    get_all_data_from_serial()
-    while b'\n' in serial_buffer:
-        data_sensor_1, data_sensor_2 = get_one_datapoint_from_buffer()
-        if data_sensor_1 is not None and data_sensor_2 is not None:
-            assign_data_to_character(data_sensor_1, data_sensor_2)
     if time.time() - TIME_SINCE_LAST_ESTIMATE > SECONDS_BETWEEN_ESTIMATES:
-        TIME_SINCE_LAST_ESTIMATE = time.time()
+        get_all_data_from_serial()
+        while b'\n' in serial_buffer:
+            data_sensor_1, data_sensor_2 = get_one_datapoint_from_buffer()
+            if data_sensor_1 is not None and data_sensor_2 is not None:
+                assign_data_to_character(data_sensor_1, data_sensor_2)
         if len(detected_characters) < 10:
             print("Too little characters detected for estimate.")
         else:
             estimated_character = estimate_character()
             print(estimated_character)
+        TIME_SINCE_LAST_ESTIMATE = time.time()
