@@ -6,6 +6,10 @@ import pyautogui
 
 # Sensor 1 has no metal ring
 
+# Next ToDo: Use Digitale motion processor DMP of MPU6050 to process the data on board:
+# http://www.geekmomprojects.com/mpu-6050-dmp-data-from-i2cdevlib/
+
+
 # -- GENERAL CONSTANTS AND VARIABLES --
 
 START_TIME = time.time()
