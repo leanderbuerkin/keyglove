@@ -34,7 +34,7 @@ void setup(void)
     setup_mpu(I2C_bus_2);
 }
 
-void get_data_from_sensor(TwoWire &I2C_bus)
+void request_data_from_sensor(TwoWire &I2C_bus)
 {
     I2C_bus.beginTransmission(MPU_ADDRESS);
     I2C_bus.write(X_ACCELERATION_REGISTER_ADDRESS);
@@ -44,10 +44,17 @@ void get_data_from_sensor(TwoWire &I2C_bus)
 
 void send_via_serial_to_teleplot(void)
 {
+    request_data_from_sensor(I2C_bus_1);
     Serial.print(">Sensor1:");
-    Serial.println(static_cast<int8_t>(I2C_bus_1.read()));
+    // use the following for more continous values, without it is faster
+    // Serial.println(static_cast<int8_t>(I2C_bus_1.read()));
+    Serial.println(I2C_bus_1.read());
+
+    request_data_from_sensor(I2C_bus_2);
     Serial.print(">Sensor2:");
-    Serial.println(static_cast<int8_t>(I2C_bus_2.read()));
+    // use the following for more continous values, without it is faster
+    // Serial.println(static_cast<int8_t>(I2C_bus_2.read()));
+    Serial.println(I2C_bus_2.read());
 }
 
 void send_via_serial_to_python(void)
@@ -59,7 +66,5 @@ void send_via_serial_to_python(void)
 
 void loop(void)
 {
-    get_data_from_sensor(I2C_bus_1);
-    get_data_from_sensor(I2C_bus_2);
-    send_via_serial_to_python();
+    send_via_serial_to_teleplot();
 }
