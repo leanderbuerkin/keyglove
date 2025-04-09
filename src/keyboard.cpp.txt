@@ -74,7 +74,7 @@ int* get_sensor_data(void)
 
 void send_key(int* sensor_data)
 {
-    if (sensor_data[1] > 10) {
+    if (sensor_data[2] > 0) {
         keyboard.write('A');
     }
     else {
@@ -101,5 +101,5 @@ void use_as_keyboard(void)
 void loop(void)
 {
     use_as_keyboard();
-    delay(100);
+    delay(1000);
 }
