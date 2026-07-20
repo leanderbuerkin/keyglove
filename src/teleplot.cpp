@@ -6,7 +6,7 @@
 // ToDo: sort this file
 // ToDo: Add watchdog
 
-#define WDT_TIMEOUT 5  // seconds before watchdog reset
+#define WDT_TIMEOUT 5 // seconds before watchdog reset
 #define MPU_ADDRESS_1 0x68
 #define MPU_ADDRESS_2 0x69
 #define POWER_MANAGEMENT_REGISTER_ADDRESS 0x6B
@@ -37,16 +37,20 @@ void setup(void)
     I2C_bus_1.begin(MPU_1_SDA_PIN, MPU_1_SCL_PIN, I2C_CLOCK_FREQUENCY);
     I2C_bus_2.begin(MPU_2_SDA_PIN, MPU_2_SCL_PIN, I2C_CLOCK_FREQUENCY);
 
-    if (!mpu1.begin(MPU_ADDRESS_1, &I2C_bus_1)) {
+    if (!mpu1.begin(MPU_ADDRESS_1, &I2C_bus_1))
+    {
         Serial.println("Failed to initialize MPU1!");
     }
-    if (!mpu2.begin(MPU_ADDRESS_1, &I2C_bus_2)) {
+    if (!mpu2.begin(MPU_ADDRESS_1, &I2C_bus_2))
+    {
         Serial.println("Failed to initialize MPU2!");
     }
-    if (!mpu3.begin(MPU_ADDRESS_2, &I2C_bus_1)) {
+    if (!mpu3.begin(MPU_ADDRESS_2, &I2C_bus_1))
+    {
         Serial.println("Failed to initialize MPU3!");
     }
-    if (!mpu4.begin(MPU_ADDRESS_2, &I2C_bus_2)) {
+    if (!mpu4.begin(MPU_ADDRESS_2, &I2C_bus_2))
+    {
         Serial.println("Failed to initialize MPU4!");
     }
 
@@ -59,20 +63,22 @@ void setup(void)
     mpu3.setHighPassFilter(MPU6050_HIGHPASS_DISABLE);
     mpu4.setHighPassFilter(MPU6050_HIGHPASS_DISABLE);
 
-    if (I2C_bus_1.requestFrom(MPU_ADDRESS_1, NUMBER_OF_NEEDED_REGISTERS) != NUMBER_OF_NEEDED_REGISTERS) {
+    if (I2C_bus_1.requestFrom(MPU_ADDRESS_1, NUMBER_OF_NEEDED_REGISTERS) != NUMBER_OF_NEEDED_REGISTERS)
+    {
         Serial.println("I2C read error!");
     }
-    if (I2C_bus_2.requestFrom(MPU_ADDRESS_1, NUMBER_OF_NEEDED_REGISTERS) != NUMBER_OF_NEEDED_REGISTERS) {
+    if (I2C_bus_2.requestFrom(MPU_ADDRESS_1, NUMBER_OF_NEEDED_REGISTERS) != NUMBER_OF_NEEDED_REGISTERS)
+    {
         Serial.println("I2C read error!");
     }
-    if (I2C_bus_1.requestFrom(MPU_ADDRESS_2, NUMBER_OF_NEEDED_REGISTERS) != NUMBER_OF_NEEDED_REGISTERS) {
+    if (I2C_bus_1.requestFrom(MPU_ADDRESS_2, NUMBER_OF_NEEDED_REGISTERS) != NUMBER_OF_NEEDED_REGISTERS)
+    {
         Serial.println("I2C read error!");
     }
-    if (I2C_bus_2.requestFrom(MPU_ADDRESS_2, NUMBER_OF_NEEDED_REGISTERS) != NUMBER_OF_NEEDED_REGISTERS) {
+    if (I2C_bus_2.requestFrom(MPU_ADDRESS_2, NUMBER_OF_NEEDED_REGISTERS) != NUMBER_OF_NEEDED_REGISTERS)
+    {
         Serial.println("I2C read error!");
     }
-
-
 }
 
 void request_data_from_sensor(TwoWire &I2C_bus, int mpu_address)
@@ -80,7 +86,7 @@ void request_data_from_sensor(TwoWire &I2C_bus, int mpu_address)
     I2C_bus.beginTransmission(mpu_address);
     I2C_bus.write(X_ACCELERATION_REGISTER_ADDRESS);
     I2C_bus.endTransmission(false);
-    I2C_bus.requestFrom(mpu_address, NUMBER_OF_NEEDED_REGISTERS);    
+    I2C_bus.requestFrom(mpu_address, NUMBER_OF_NEEDED_REGISTERS);
 }
 
 void serial_print_sensor_data(TwoWire &I2C_bus, int mpu_address)
@@ -92,19 +98,20 @@ void serial_print_sensor_data(TwoWire &I2C_bus, int mpu_address)
 
 void serial_print_for_debugging_with_teleplot(void)
 {
-    Serial.print(">Sensor 1:");
-    serial_print_sensor_data(I2C_bus_1, MPU_ADDRESS_2);
-    Serial.print(">Sensor 2:");
+    Serial.print(">mpu1 MPU_ADDRESS_1 I2C_bus_1:");
     serial_print_sensor_data(I2C_bus_1, MPU_ADDRESS_1);
-    Serial.print(">Sensor 3:");
-    serial_print_sensor_data(I2C_bus_2, MPU_ADDRESS_2);
-    Serial.print(">Sensor 4:");
+    Serial.print(">mpu2 MPU_ADDRESS_1 I2C_bus_2:");
     serial_print_sensor_data(I2C_bus_2, MPU_ADDRESS_1);
+    Serial.print(">mpu3 MPU_ADDRESS_2 I2C_bus_1:");
+    serial_print_sensor_data(I2C_bus_1, MPU_ADDRESS_2);
+    Serial.print(">mpu4 MPU_ADDRESS_2 I2C_bus_2:");
+    serial_print_sensor_data(I2C_bus_2, MPU_ADDRESS_2);
 }
 
 void loop(void)
 {
-    if (millis() - lastUpdate >= 10) {
+    if (millis() - lastUpdate >= 100)
+    {
         serial_print_for_debugging_with_teleplot();
         lastUpdate = millis();
     }
